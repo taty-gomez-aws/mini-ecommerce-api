@@ -3,12 +3,15 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./ecommerce.db"
 
+# engine
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 
+# local session
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# base
 Base = declarative_base()
 
 

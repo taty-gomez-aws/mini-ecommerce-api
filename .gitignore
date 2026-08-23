@@ -10,6 +10,9 @@ venv/
 # Local application data
 ecommerce.db
 
+# Test database
+test.db
+
 # Test and tooling caches
 .pytest_cache/
 .ruff_cache/

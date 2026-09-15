@@ -56,7 +56,7 @@ pipeline {
                     COMMAND_ID=$(aws ssm send-command \
                     --instance-ids "$PROD_INSTANCE_ID" \
                     --document-name "AWS-RunShellScript" \
-                    --parameters commands=["docker pull ${ECR_REPO}:${IMAGE_TAG}","docker stop ${IMAGE_NAME} || true","docker rm ${IMAGE_NAME} || true","docker run -d --name ${IMAGE_NAME} -p 8000:8000 ${ECR_REPO}:${IMAGE_TAG}"] \
+                    --parameters commands=["aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}","docker pull ${ECR_REPO}:${IMAGE_TAG}","docker stop ${IMAGE_NAME} || true","docker rm ${IMAGE_NAME} || true","docker run -d --name ${IMAGE_NAME} -p 8000:8000 ${ECR_REPO}:${IMAGE_TAG}"] \
                     --region "$AWS_REGION" \
                     --query "Command.CommandId" --output text)
 

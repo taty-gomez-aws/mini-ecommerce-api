@@ -6,7 +6,7 @@ pipeline {
 	    AWS_REGION       = 'us-east-1'
 	    ECR_REPO         = '784230179950.dkr.ecr.us-east-1.amazonaws.com/mini-ecommerce-api'
 	    IMAGE_TAG        = "${env.GIT_COMMIT.take(7)}"
-	    PROD_INSTANCE_ID = 'i-0e1263811a49efb09'
+        PROD_INSTANCE_ID = 'i-0bf0796f32cde0425'
 	}
 
     stages {

@@ -15,8 +15,9 @@ class ProductCreate(ProductBase):
 class Product(ProductBase):
     id: int
 
-    class Config():
+    class Config:
         from_attributes = True
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -30,7 +31,7 @@ class User(UserBase):
     id: int
     is_active: bool
 
-    class Config():
+    class Config:
         from_attributes = True
 
 

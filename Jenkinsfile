@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mini-ecommerce-api"
-        AWS_REGION = 'us-east-1'
-        ECR_REPO   = '784230179950.dkr.ecr.us-east-1.amazonaws.com/mini-ecommerce-api'
-        IMAGE_TAG  = "${env.GIT_COMMIT.take(7)}"
-    }
+	    IMAGE_NAME       = "mini-ecommerce-api"
+	    AWS_REGION       = 'us-east-1'
+	    ECR_REPO         = '784230179950.dkr.ecr.us-east-1.amazonaws.com/mini-ecommerce-api'
+	    IMAGE_TAG        = "${env.GIT_COMMIT.take(7)}"
+	    PROD_INSTANCE_ID = 'i-0e1263811a49efb09'
+	}
 
     stages {
         stage('Build Docker Image') {
@@ -35,9 +36,39 @@ pipeline {
                 sh '''
                     docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_REPO}:${IMAGE_TAG}
                     docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_REPO}:latest
-
                     docker push ${ECR_REPO}:${IMAGE_TAG}
                     docker push ${ECR_REPO}:latest
+                '''
+            }
+        }
+
+        stage('Approve Deploy') {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input message: '¿Desplegar esta imagen a producción?', ok: 'Deploy'
+                }
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                sh '''
+                    COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "$PROD_INSTANCE_ID" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters commands=["docker pull ${ECR_REPO}:${IMAGE_TAG}","docker stop ${IMAGE_NAME} || true","docker rm ${IMAGE_NAME} || true","docker run -d --name ${IMAGE_NAME} -p 8000:8000 ${ECR_REPO}:${IMAGE_TAG}"] \
+                    --region "$AWS_REGION" \
+                    --query "Command.CommandId" --output text)
+
+                    aws ssm wait command-executed \
+                    --command-id "$COMMAND_ID" \
+                    --instance-id "$PROD_INSTANCE_ID" \
+                    --region "$AWS_REGION"
+
+                    aws ssm get-command-invocation \
+                    --command-id "$COMMAND_ID" \
+                    --instance-id "$PROD_INSTANCE_ID" \
+                    --region "$AWS_REGION"
                 '''
             }
         }
@@ -45,10 +76,14 @@ pipeline {
 
     post {
         always {
-            sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
+            sh '''
+                docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true
+                docker rmi ${ECR_REPO}:${IMAGE_TAG} || true
+                docker rmi ${ECR_REPO}:latest || true
+            '''
         }
         success {
-            echo '✅ Build, tests y push a ECR completados correctamente'
+            echo '✅ Pipeline completo: build, tests, push a ECR y deploy a producción exitosos'
         }
         failure {
             echo '❌ El pipeline ha fallado'
